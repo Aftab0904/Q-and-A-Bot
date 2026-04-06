@@ -66,18 +66,33 @@ def embed(texts):
 @app.post("/upload")
 async def upload(file: UploadFile):
 
+    print("UPLOAD STARTED")   # 
+
     if not file.filename.endswith(".txt"):
         raise HTTPException(status_code=415, detail="Only .txt files allowed")
 
     content = await file.read()
 
+    print("FILE READ DONE") 
+
     if not content:
         raise HTTPException(status_code=400, detail="File is empty")
 
-    text = content.decode("utf-8")
+    try:
+        text = content.decode("utf-8")
+    except Exception as e:
+        print("DECODE ERROR:", e)
+        raise HTTPException(status_code=400, detail="Encoding error")
+
+    print("TEXT READY")   
 
     chunks = chunk_text(text)
+
+    print("CHUNKS CREATED:", len(chunks))  
+
     embeddings = embed(chunks)
+
+    print("EMBEDDINGS DONE")  
 
     doc_id = str(uuid.uuid4())
 
