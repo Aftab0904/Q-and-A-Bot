@@ -6,13 +6,14 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 import numpy as np
+import google.generativeai as genai
 
 load_dotenv()
 
 # -------- APP --------
 app = FastAPI()
 
-# -------- CORS (VERY IMPORTANT) --------
+# -------- CORS --------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,14 +22,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------- CLIENTS --------
+# -------- API KEYS --------
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
 groq_client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
-)
-
-openai_client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 # -------- STORE --------
@@ -40,7 +39,7 @@ class AskRequest(BaseModel):
     question: str
 
 
-# -------- CHUNK FUNCTION --------
+# -------- CHUNK --------
 def chunk_text(text, size=300, overlap=50):
     chunks = []
     i = 0
@@ -50,14 +49,20 @@ def chunk_text(text, size=300, overlap=50):
     return chunks
 
 
-# -------- EMBEDDING (OPENAI) --------
+# -------- GEMINI EMBEDDING --------
 def embed(texts):
     try:
-        res = openai_client.embeddings.create(
-            model="text-embedding-3-small",
-            input=texts
-        )
-        return [r.embedding for r in res.data]
+        embeddings = []
+
+        for text in texts:
+            res = genai.embed_content(
+                model="models/embedding-001",
+                content=text
+            )
+            embeddings.append(res["embedding"])
+
+        return embeddings
+
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Embedding failed: {str(e)}")
 
@@ -66,33 +71,18 @@ def embed(texts):
 @app.post("/upload")
 async def upload(file: UploadFile):
 
-    print("UPLOAD STARTED")   # 
-
     if not file.filename.endswith(".txt"):
         raise HTTPException(status_code=415, detail="Only .txt files allowed")
 
     content = await file.read()
 
-    print("FILE READ DONE") 
-
     if not content:
         raise HTTPException(status_code=400, detail="File is empty")
 
-    try:
-        text = content.decode("utf-8")
-    except Exception as e:
-        print("DECODE ERROR:", e)
-        raise HTTPException(status_code=400, detail="Encoding error")
-
-    print("TEXT READY")   
+    text = content.decode("utf-8")
 
     chunks = chunk_text(text)
-
-    print("CHUNKS CREATED:", len(chunks))  
-
     embeddings = embed(chunks)
-
-    print("EMBEDDINGS DONE")  
 
     doc_id = str(uuid.uuid4())
 
@@ -168,7 +158,6 @@ def health():
     return {"status": "ok"}
 
 
-# -------- ROOT (OPTIONAL) --------
 @app.get("/")
 def root():
-    return {"message": "API is running "}
+    return {"message": "API running 🚀"}
