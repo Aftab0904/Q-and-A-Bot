@@ -1,17 +1,16 @@
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import uuid
 import os
 from dotenv import load_dotenv
-
-from rag import chunk_text, embed_chunks, store_document, retrieve
-from models import AskRequest
+from openai import OpenAI
 
 load_dotenv()
 
 app = FastAPI()
 
-# CORS fix
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,43 +19,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OPENAI_KEY = os.getenv("OPENAI_API_KEY")
-GROQ_KEY = os.getenv("GROQ_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# In-memory store
+DOCUMENTS = {}
+
+# -------- MODEL --------
+class AskRequest(BaseModel):
+    document_id: str
+    question: str
 
 
-# ---------- STRICT PROMPT ----------
-SYSTEM_PROMPT = """
-You are a document QA assistant.
-
-You MUST answer ONLY from the provided context.
-
-RULES:
-- If answer is NOT in context → say:
-  "The answer is not present in the document."
-- Do NOT use outside knowledge
-- Be concise
-"""
+# -------- CHUNK --------
+def chunk_text(text, size=300, overlap=50):
+    chunks = []
+    i = 0
+    while i < len(text):
+        chunks.append(text[i:i+size])
+        i += size - overlap
+    return chunks
 
 
-# ---------- UPLOAD ----------
+# -------- EMBEDDING --------
+def embed(texts):
+    res = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=texts
+    )
+    return [r.embedding for r in res.data]
+
+
+# -------- UPLOAD --------
 @app.post("/upload")
 async def upload(file: UploadFile):
 
     if not file.filename.endswith(".txt"):
-        raise HTTPException(status_code=415, detail="Only .txt allowed")
+        raise HTTPException(status_code=415, detail="Only .txt files allowed")
 
     content = await file.read()
 
     if not content:
-        raise HTTPException(status_code=400, detail="Empty file")
+        raise HTTPException(status_code=400, detail="File is empty")
 
     text = content.decode("utf-8")
 
     chunks = chunk_text(text)
-    embeddings = embed_chunks(chunks)
+    embeddings = embed(chunks)
 
     doc_id = str(uuid.uuid4())
-    store_document(doc_id, chunks, embeddings)
+
+    DOCUMENTS[doc_id] = {
+        "chunks": chunks,
+        "embeddings": embeddings
+    }
 
     return {
         "document_id": doc_id,
@@ -65,87 +80,63 @@ async def upload(file: UploadFile):
     }
 
 
-# ---------- LLM FUNCTIONS ----------
-def ask_openai(prompt):
-    from openai import OpenAI
-    client = OpenAI(api_key=OPENAI_KEY)
+# -------- RETRIEVE --------
+def retrieve(doc_id, question):
+    import numpy as np
 
-    res = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ]
-    )
+    data = DOCUMENTS.get(doc_id)
 
-    return res.choices[0].message.content
+    if not data:
+        return None
 
+    q_embed = embed([question])[0]
 
-def ask_groq(prompt):
-    from openai import OpenAI
+    sims = np.dot(data["embeddings"], q_embed)
+    idx = np.argsort(sims)[-3:][::-1]
 
-    client = OpenAI(
-        api_key=GROQ_KEY,
-        base_url="https://api.groq.com/openai/v1"
-    )
-
-    res = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ]
-    )
-
-    return res.choices[0].message.content
+    return [data["chunks"][i] for i in idx], idx.tolist()
 
 
-def ask_llama_local(prompt):
-    return "Free model. Context was provided."
-
-
-# ---------- ASK ----------
+# -------- ASK --------
 @app.post("/ask")
 def ask(req: AskRequest):
 
     if not req.question:
-        raise HTTPException(status_code=400, detail="Empty question")
+        raise HTTPException(status_code=400, detail="Question is empty")
 
     result = retrieve(req.document_id, req.question)
 
     if not result:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    context, indices = result
+    context, sources = result
 
-    final_prompt = f"""
-Context:
+    prompt = f"""
+Answer ONLY using this context:
 {context}
+
+If answer is not present, say:
+"Answer not found in document"
 
 Question:
 {req.question}
 """
 
-    if req.model == "openai":
-        answer = ask_openai(final_prompt)
-
-    elif req.model == "groq":
-        answer = ask_groq(final_prompt)
-
-    else:
-        answer = ask_llama_local(final_prompt)
+    try:
+        res = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}]
+        )
+    except:
+        raise HTTPException(status_code=503, detail="LLM failed")
 
     return {
-        "answer": answer,
-        "sources": indices
+        "answer": res.choices[0].message.content,
+        "sources": sources
     }
 
 
-# ---------- HEALTH ----------
+# -------- HEALTH --------
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "llm": "dynamic",
-        "embedding": "MiniLM"
-    }
+    return {"status": "ok"}
