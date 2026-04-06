@@ -1,6 +1,6 @@
 # TalentScout – Document Q&A Assistant
 
-An AI-powered Document Question Answering system built using Retrieval-Augmented Generation (RAG).
+An Intelligent Document Question Answering system built using Retrieval-Augmented Generation (RAG).
 
 This application allows users to upload a `.txt` document, ask questions about it, and receive answers strictly based on the document content — ensuring no hallucinations from the LLM.
 
@@ -32,7 +32,7 @@ This system solves the problem by:
 - **Backend:** FastAPI  
 - **Frontend:** HTML, CSS, JavaScript (Single Page UI)  
 - **LLM:** OpenAI GPT / Groq (LLaMA)  
-- **Embeddings:** OpenAI `text-embedding-3-small`  
+- **Embeddings:** GEMINI `gemini-embedding-2-preview`  
 - **Deployment:** Render (Backend), Vercel (Frontend)  
 
 ---
@@ -41,14 +41,14 @@ This system solves the problem by:
 
 | Feature | Description |
 |--------|------------|
-|  File Upload | Upload `.txt` documents |
-| Chunking | Splits document into smaller chunks |
-| Semantic Search | Uses embeddings for similarity search |
-|  AI Q&A | Answers questions using document context only |
-|  No Hallucination | Strict prompt ensures grounded answers |
-|  Source Tracking | Shows chunk indices used for answers |
-|  Fast UI | Single-page HTML interface |
-|  Model Flexibility | Supports OpenAI / Groq LLMs |
+| File Upload | Accepts `.txt` documents for processing |
+| Chunking Strategy | Splits text into overlapping segments for better retrieval |
+| Semantic Retrieval | Identifies relevant context using vector similarity |
+| Context-Grounded Q&A | Ensures responses are strictly derived from document content |
+| Hallucination Control | Enforced via structured prompting |
+| Source Attribution | Returns chunk indices used for generating answers |
+| Error Handling | Implements proper HTTP status codes for all edge cases |
+| Modular Design | Easily extendable for multiple models and storage layers |
 
 ---
 
@@ -115,3 +115,31 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 ```
+---
+
+## Live Demo
+
+- **Frontend:** [TalentScout](https://q-and-a-bot.vercel.app/?_vercel_share=xVkGohIJrsCumGgSS0OvUuzPpAXmALpj)
+- **Backend API:** [API Documentation](https://render.com/docs)
+
+---
+
+## Demo Preview
+
+A visual walkthrough of the application is included below:
+
+<p align="center">
+  <img src="assets/Screenshot (193).png" width="45%" alt="Step 1" />
+  <img src="assets/Screenshot (192).png" width="45%" alt="Step 2" />
+</p>
+
+<p align="center">
+  <img src="assets/Screenshot (191).png" width="45%" alt="Step 3" />
+  <img src="assets/Screenshot (190).png" width="45%" alt="Step 4" />
+</p>
+
+<p align="center">
+  <img src="assets/Screenshot (189).png" width="45%" alt="Step 5" />
+  <img src="assets/Screenshot (188).png" width="45%" alt="Step 6" />
+</p>
+
