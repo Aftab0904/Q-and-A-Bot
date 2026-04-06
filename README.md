@@ -71,7 +71,7 @@ flowchart TD
     J --> K[Frontend Display + Sources]
 ```
 
-## 🔑 LLM & Embedding Details
+## LLM & Embedding Details
 
 ### LLM Used
 - **OpenAI (GPT-3.5 Turbo)**
