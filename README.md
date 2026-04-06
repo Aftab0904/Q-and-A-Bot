@@ -71,3 +71,47 @@ flowchart TD
     J --> K[Frontend Display + Sources]
 ```
 
+## 🔑 LLM & Embedding Details
+
+### LLM Used
+- **OpenAI (GPT-3.5 Turbo)**
+- **Groq (LLaMA 3)**
+
+**Why these models?**
+- Fast response time suitable for real-time applications  
+- High-quality and reliable answers  
+- Easy API integration  
+- Groq provides a free and fast inference option  
+
+---
+
+### Embedding Model
+- **OpenAI – `text-embedding-3-small`**
+
+**Why this embedding model?**
+- Lightweight and efficient (important for deployment on free-tier services)  
+- Good semantic understanding for document retrieval  
+- Avoids heavy local models like sentence-transformers, reducing memory usage  
+
+---
+
+## API Key Setup
+
+To securely use LLM and embedding services, API keys are stored using environment variables.
+
+### Step 1: Create a `.env` file in the backend directory
+
+---
+
+### Step 2: Load environment variables in code
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+```
