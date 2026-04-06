@@ -58,7 +58,7 @@ This system solves the problem by:
 flowchart TD
 
     A[User Uploads Document] --> B[Chunking Engine]
-    B --> C[Embedding Model (OpenAI)]
+    B --> C["Embedding Model (OpenAI)"]
     C --> D[In-Memory Storage]
 
     E[User Question] --> F[Query Embedding]
