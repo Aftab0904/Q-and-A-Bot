@@ -128,16 +128,16 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 A visual walkthrough of the application is included below:
 
 <p align="center">
-  <img src="assets/step1.png" width="45%" />
-  <img src="assets/step2.png" width="45%" />
+  <img src="./assets/step1.png" width="45%" />
+  <img src="./assets/step2.png" width="45%" />
 </p>
 
 <p align="center">
-  <img src="assets/step3.png" width="45%" />
-  <img src="assets/step4.png" width="45%" />
+  <img src="./assets/step3.png" width="45%" />
+  <img src="./assets/step4.png" width="45%" />
 </p>
 
 <p align="center">
-  <img src="assets/step5.png" width="45%" />
-  <img src="assets/step6.png" width="45%" />
+  <img src="./assets/step5.png" width="45%" />
+  <img src="./assets/step6.png" width="45%" />
 </p>
