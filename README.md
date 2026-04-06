@@ -86,7 +86,7 @@ flowchart TD
 ---
 
 ### Embedding Model
-- **OpenAI – `text-embedding-3-small`**
+- **GoogleGemini**
 
 **Why this embedding model?**
 - Lightweight and efficient (important for deployment on free-tier services)  
