@@ -111,7 +111,7 @@ import os
 
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 ```
@@ -123,23 +123,21 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 - **Backend API:** [API Documentation](https://render.com/docs)
 
 ---
-
 ## Demo Preview
 
 A visual walkthrough of the application is included below:
 
 <p align="center">
-  <img src="assets/Screenshot (193).png" width="45%" alt="Step 1" />
-  <img src="assets/Screenshot (192).png" width="45%" alt="Step 2" />
+  <img src="assets/step1.png" width="45%" />
+  <img src="assets/step2.png" width="45%" />
 </p>
 
 <p align="center">
-  <img src="assets/Screenshot (191).png" width="45%" alt="Step 3" />
-  <img src="assets/Screenshot (190).png" width="45%" alt="Step 4" />
+  <img src="assets/step3.png" width="45%" />
+  <img src="assets/step4.png" width="45%" />
 </p>
 
 <p align="center">
-  <img src="assets/Screenshot (189).png" width="45%" alt="Step 5" />
-  <img src="assets/Screenshot (188).png" width="45%" alt="Step 6" />
+  <img src="assets/step5.png" width="45%" />
+  <img src="assets/step6.png" width="45%" />
 </p>
-
