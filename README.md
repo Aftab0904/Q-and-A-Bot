@@ -65,7 +65,7 @@ flowchart TD
     F --> G[Similarity Search]
     G --> H[Top Chunks Retrieved]
 
-    H --> I[LLM (OpenAI / Groq)]
+    H --> I["LLM (OpenAI / Groq)"]
     I --> J[Answer Generated]
 
     J --> K[Frontend Display + Sources]
