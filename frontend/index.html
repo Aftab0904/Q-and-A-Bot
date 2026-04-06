@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document QA App</title>
+</head>
+<body>
+
+<h1> Document Q&A</h1>
+
+<!-- ---------------- UPLOAD SECTION ---------------- -->
+
+<h2>Upload Document</h2>
+
+<input type="file" id="file" accept=".txt">
+<button onclick="upload()">Upload</button>
+
+<p id="uploadStatus" style="color: green;"></p>
+
+<hr>
+
+<!-- ---------------- QUESTION SECTION ---------------- -->
+
+<h2>Ask Question</h2>
+
+<input type="text" id="question" placeholder="Enter your question here" style="width: 300px;">
+
+<br><br>
+
+<label>Select Model:</label>
+
+<select id="model">
+  <option value="openai">OpenAI</option>
+  <option value="groq">Groq (Free)</option>
+  <option value="llama">Free Local Model</option>
+</select>
+
+<br><br>
+
+<button onclick="ask()">Ask</button>
+
+<p id="loading" style="color: blue;"></p>
+
+<h3>Answer:</h3>
+<p id="answer"></p>
+
+<h4>Sources (chunk numbers):</h4>
+<p id="sources"></p>
+
+<hr>
+
+<!-- ---------------- SCRIPT ---------------- -->
+
+<script>
+
+let doc_id = "";
+
+// -------- UPLOAD FUNCTION --------
+async function upload() {
+    let file = document.getElementById("file").files[0];
+
+    if (!file) {
+        alert("Please select a file");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("file", file);
+
+    let res = await fetch("https://YOUR-BACKEND.onrender.com/upload", {
+        method: "POST",
+        body: formData
+    });
+
+    let data = await res.json();
+
+    if (data.document_id) {
+        doc_id = data.document_id;
+
+        document.getElementById("uploadStatus").innerText =
+            "Uploaded: " + data.filename + " | Chunks: " + data.total_chunks;
+    } else {
+        document.getElementById("uploadStatus").innerText =
+            "Upload failed";
+    }
+}
+
+
+// -------- ASK FUNCTION --------
+async function ask() {
+
+    let question = document.getElementById("question").value;
+    let model = document.getElementById("model").value;
+
+    if (!doc_id) {
+        alert("Please upload a document first");
+        return;
+    }
+
+    if (!question) {
+        alert("Enter a question");
+        return;
+    }
+
+    document.getElementById("loading").innerText = "⏳ Thinking...";
+    document.getElementById("answer").innerText = "";
+    document.getElementById("sources").innerText = "";
+
+    let res = await fetch("https://YOUR-BACKEND.onrender.com/ask", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            document_id: doc_id,
+            question: question,
+            model: model
+        })
+    });
+
+    let data = await res.json();
+
+    document.getElementById("loading").innerText = "";
+
+    if (data.answer) {
+        document.getElementById("answer").innerText = data.answer;
+        document.getElementById("sources").innerText = data.sources;
+    } else {
+        document.getElementById("answer").innerText = "Error occurred";
+    }
+}
+
+</script>
+
+</body>
+</html>
