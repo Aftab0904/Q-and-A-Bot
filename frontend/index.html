@@ -66,7 +66,7 @@ async function upload() {
     let formData = new FormData();
     formData.append("file", file);
 
-    let res = await fetch("https://YOUR-BACKEND.onrender.com/upload", {
+    let res = await fetch("https://q-and-a-bot.onrender.com/upload", {
         method: "POST",
         body: formData
     });
@@ -105,7 +105,7 @@ async function ask() {
     document.getElementById("answer").innerText = "";
     document.getElementById("sources").innerText = "";
 
-    let res = await fetch("https://YOUR-BACKEND.onrender.com/ask", {
+    let res = await fetch("https://q-and-a-bot.onrender.com/ask", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
