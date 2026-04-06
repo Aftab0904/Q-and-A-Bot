@@ -56,7 +56,7 @@ def embed(texts):
 
         for text in texts:
             res = genai.embed_content(
-                model="models/embedding-001",
+                model="models/gemini-embedding-2-preview",
                 content=text
             )
             embeddings.append(res["embedding"])
