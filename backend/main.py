@@ -5,12 +5,14 @@ import uuid
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+import numpy as np
 
 load_dotenv()
 
+# -------- APP --------
 app = FastAPI()
 
-# CORS
+# -------- CORS (VERY IMPORTANT) --------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,9 +21,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# -------- CLIENTS --------
+groq_client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
 
-# In-memory store
+openai_client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+
+# -------- STORE --------
 DOCUMENTS = {}
 
 # -------- MODEL --------
@@ -30,7 +40,7 @@ class AskRequest(BaseModel):
     question: str
 
 
-# -------- CHUNK --------
+# -------- CHUNK FUNCTION --------
 def chunk_text(text, size=300, overlap=50):
     chunks = []
     i = 0
@@ -40,13 +50,16 @@ def chunk_text(text, size=300, overlap=50):
     return chunks
 
 
-# -------- EMBEDDING --------
+# -------- EMBEDDING (OPENAI) --------
 def embed(texts):
-    res = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=texts
-    )
-    return [r.embedding for r in res.data]
+    try:
+        res = openai_client.embeddings.create(
+            model="text-embedding-3-small",
+            input=texts
+        )
+        return [r.embedding for r in res.data]
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Embedding failed: {str(e)}")
 
 
 # -------- UPLOAD --------
@@ -82,8 +95,6 @@ async def upload(file: UploadFile):
 
 # -------- RETRIEVE --------
 def retrieve(doc_id, question):
-    import numpy as np
-
     data = DOCUMENTS.get(doc_id)
 
     if not data:
@@ -123,12 +134,12 @@ Question:
 """
 
     try:
-        res = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        res = groq_client.chat.completions.create(
+            model="llama3-8b-8192",
             messages=[{"role": "user", "content": prompt}]
         )
-    except:
-        raise HTTPException(status_code=503, detail="LLM failed")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"LLM failed: {str(e)}")
 
     return {
         "answer": res.choices[0].message.content,
@@ -140,3 +151,9 @@ Question:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# -------- ROOT (OPTIONAL) --------
+@app.get("/")
+def root():
+    return {"message": "API is running "}
