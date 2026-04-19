@@ -2,6 +2,9 @@ import os
 from openai import OpenAI
 import json
 import re
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Initialize Groq for evaluation
 groq_client = OpenAI(

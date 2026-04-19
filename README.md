@@ -34,25 +34,36 @@ Most RAG systems operate as "black boxes"—users have to blindly trust the AI's
 
 ```mermaid
 graph TD
-    A[User Uploads PDF] --> B[FastAPI Backend]
+    A[User Uploads PDF/TXT] --> B[FastAPI Ingestion Engine]
     B --> C[PyPDF Text Extraction]
     C --> D[Chunking + Gemini Embeddings]
     D --> E[(ChromaDB Vector Store)]
     
-    F[User Question] --> G[Vector Retrieval]
+    F[User Technical Question] --> G[Semantic Vector Retrieval]
     G --> H[Groq Llama 3.3 Generator]
-    H --> I[Generated Answer]
+    H --> I[AI Generated Answer]
     
     I --> J{Judge LLM Auditor}
     G & F & I --> J
-    J -- Scoring + Reasoning --> K[Trust Engine Results]
+    J -- Quality Scoring --> K[Trust Engine Results]
     
-    I & K --> L[React Dashboard]
+    K & I --> L[React 19 Dashboard]
     
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style E fill:#c2c2f0,stroke:#333,stroke-width:4px
-    style J fill:#ff9999,stroke:#333,stroke-width:4px
-    style L fill:#61DAFB,stroke:#333,stroke-width:2px
+    classDef box color:#fff,stroke:#fff,stroke-width:2px;
+    class A,B,C,D,E,F,G,H,I,J,K,L box;
+
+    style A fill:#B03A2E
+    style B fill:#1F618D
+    style C fill:#1E8449
+    style D fill:#D68910
+    style E fill:#7D3C98,stroke-width:4px
+    style F fill:#AF7AC5
+    style G fill:#2471A3
+    style H fill:#117864
+    style I fill:#283747
+    style J fill:#641E16,stroke-width:4px
+    style K fill:#154360
+    style L fill:#1B4F72
 ```
 
 ---
