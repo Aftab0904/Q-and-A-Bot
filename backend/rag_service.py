@@ -1,17 +1,18 @@
 import os
 import uuid
 import numpy as np
-import google.generativeai as genai
 import chromadb
-from chromadb.config import Settings
 from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
 # -------- CONFIG --------
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Local Embedding Model (No API needed)
+print("Loading local embedding model (BAAI/bge-small-en-v1.5)...")
+embed_model = SentenceTransformer('BAAI/bge-small-en-v1.5')
 
-# Persistent ChromaDB (saves to a local folder named 'chroma_db')
+# Persistent ChromaDB
 client = chromadb.PersistentClient(path="./chroma_db")
 
 # Create or get a collection for documents
@@ -29,22 +30,18 @@ def chunk_text(text, size=500, overlap=50):
         i += size - overlap
     return chunks
 
-# -------- GEMINI EMBEDDING --------
+# -------- LOCAL EMBEDDING --------
 def embed(texts):
-    res = genai.embed_content(
-        model="models/gemini-embedding-2-preview",
-        content=texts
-    )
-    return res["embedding"]
+    if isinstance(texts, str):
+        texts = [texts]
+    embeddings = embed_model.encode(texts)
+    return embeddings.tolist()
 
 # -------- STORE --------
 def store_document(doc_id, filename, chunks):
     embeddings = embed(chunks)
     
-    # Generate unique IDs for each chunk
     ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
-    
-    # Add metadata to each chunk
     metadatas = [{"filename": filename, "doc_id": doc_id, "chunk_index": i} for i in range(len(chunks))]
     
     collection.add(

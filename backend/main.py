@@ -7,10 +7,10 @@ import io
 from dotenv import load_dotenv
 from openai import OpenAI
 import numpy as np
-import google.generativeai as genai
 from pypdf import PdfReader
 import chromadb
 from evaluator import evaluate_response
+from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
@@ -26,13 +26,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------- API KEYS --------
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
+# -------- LLM CLIENT --------
 groq_client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
+
+# -------- EMBEDDING MODEL (LOCAL) --------
+print("Loading local embedding model (BAAI/bge-small-en-v1.5)...")
+embed_model = SentenceTransformer('BAAI/bge-small-en-v1.5')
 
 # -------- CHROMADB --------
 client = chromadb.PersistentClient(path="./chroma_db")
@@ -57,16 +59,20 @@ def chunk_text(text, size=800, overlap=100):
     return chunks
 
 
-# -------- GEMINI EMBEDDING (Batch) --------
+# -------- LOCAL EMBEDDING --------
 def embed(texts):
     try:
-        res = genai.embed_content(
-            model="models/text-embedding-004",
-            content=texts
-        )
-        return res["embedding"]
+        # Use local sentence-transformers
+        if isinstance(texts, str):
+            texts = [texts]
+        
+        embeddings = embed_model.encode(texts)
+        return embeddings.tolist()
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Embedding failed: {str(e)}")
+        print(f"CRITICAL: Embedding failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=503, detail=f"Local embedding failed: {str(e)}")
 
 
 # -------- UPLOAD --------
@@ -171,3 +177,7 @@ def health():
 @app.get("/")
 def root():
     return {"message": "API running 🚀"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
