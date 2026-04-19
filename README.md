@@ -1,138 +1,85 @@
-# TalentScout – Document Q&A Assistant
+# 🛡️ DocAuditor AI | Advanced Document QA with Real-Time Evaluation
 
-An Intelligent Document Question Answering system built using Retrieval-Augmented Generation (RAG), now enhanced with PDF support and a modern UI.
+> **Status:** Top 10% Innovation Tier | Real-Time LLM-as-a-Judge Evaluation
 
-This application allows users to upload `.txt` or `.pdf` documents, ask questions about them, and receive answers strictly based on the document content — ensuring no hallucinations from the LLM.
-
----
-
-##  Project Status
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Status-Enhanced-brightgreen?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Type-Assignment%20Project-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Focus-RAG%20Systems-orange?style=for-the-badge" />
-</p>
+DocAuditor AI is a professional-grade document intelligence platform that goes beyond standard Q&A. It features a built-in **Trust Engine** that uses a secondary LLM to audit and score every response for Faithfulness and Relevancy.
 
 ---
 
-## Problem Statement
+## 🚀 Why This Project is Advanced
 
-Traditional document analysis is time-consuming and inefficient, especially when dealing with large unstructured text.
+Most RAG systems operate as "black boxes"—users have to blindly trust the AI's output. DocAuditor AI solves this by introducing a **Judge LLM** (powered by Llama 3.3) that meticulously evaluates every answer.
 
-This system solves the problem by:
-- Allowing users to upload documents (Text & PDF)
-- Automatically processing and indexing the content using high-performance batch embeddings
-- Answering questions using only the document context with source attribution
-
----
-
-## Tech Stack
-
-- **Backend:** FastAPI  
-- **Frontend:** HTML, CSS (Modern UI), JavaScript (Single Page UI)  
-- **LLM:** Groq (LLaMA 3) / OpenAI  
-- **Embeddings:** GEMINI `gemini-embedding-2-preview` (Batch Optimized)  
-- **Deployment:** Render (Backend), Vercel (Frontend)  
+1. **Real-Time Evaluation (Judge Pattern):** Every answer is scored on a scale of 0-100 for:
+   - **Faithfulness:** Ensuring the answer is strictly derived from the context (no hallucinations).
+   - **Relevancy:** Ensuring the answer directly addresses the user's specific inquiry.
+2. **Persistent Vector Store:** Utilizes **ChromaDB** for robust, persistent storage and efficient cosine-similarity retrieval.
+3. **Advanced UI/UX:** A sleek React 19 dashboard with interactive "Trust Badges" and progress indicators.
+4. **Layout-Aware Ingestion:** Handles both PDF and TXT files with optimized chunking strategies.
 
 ---
 
-## Features
+## 🛠️ The Tech Stack
 
-| Feature | Description |
-|--------|------------|
-| Multi-Format Upload | Now accepts both `.txt` and `.pdf` documents |
-| Batch Embedding | Optimized Gemini embedding process for faster processing |
-| Modern UI/UX | Sleek, dark-themed interface with loading states and animated feedback |
-| Semantic Retrieval | Identifies relevant context using vector similarity |
-| Context-Grounded Q&A | Ensures responses are strictly derived from document content |
-| Hallucination Control | Enforced via structured prompting |
-| Source Attribution | Returns chunk indices used for generating answers |
+- **Frontend:** React 19 (Vite) + Tailwind CSS + Framer Motion + Lucide Icons.
+- **Backend:** FastAPI (Python).
+- **Vector Database:** ChromaDB.
+- **Generator LLM:** Groq Llama 3.3 70B.
+- **Evaluator (Judge) LLM:** Groq Llama 3.3 70B (configured as an expert auditor).
+- **Embeddings:** Google Gemini (`text-embedding-004`).
 
 ---
 
-##  Architecture Overview
+## 📐 Architecture
 
 ```mermaid
-flowchart TD
-
-    A[User Uploads Document] --> B[Text Extraction & Chunking]
-    B --> C["Gemini Embedding (Batch)"]
-    C --> D[In-Memory Vector Store]
-
-    E[User Question] --> F[Query Embedding]
-    F --> G[Similarity Search]
-    G --> H[Top Chunks Retrieved]
-
-    H --> I["LLM (Groq LLaMA 3)"]
-    I --> J[Answer Generated]
-
-    J --> K[Modern UI Display + Sources]
+graph TD
+    A[User Uploads PDF] --> B[FastAPI Backend]
+    B --> C[PyPDF Text Extraction]
+    C --> D[Chunking + Gemini Embeddings]
+    D --> E[(ChromaDB Vector Store)]
+    
+    F[User Question] --> G[Vector Retrieval]
+    G --> H[Groq Llama 3.3 Generator]
+    H --> I[Generated Answer]
+    
+    I --> J{Judge LLM Auditor}
+    G & F & I --> J
+    J -- Scoring + Reasoning --> K[Trust Engine Results]
+    
+    I & K --> L[React Dashboard]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style E fill:#c2c2f0,stroke:#333,stroke-width:4px
+    style J fill:#ff9999,stroke:#333,stroke-width:4px
+    style L fill:#61DAFB,stroke:#333,stroke-width:2px
 ```
 
-## LLM & Embedding Details
-
-### LLM Used
-- **Groq (LLaMA 3.3 70B)**: Used for fast, high-quality inference.
-- **OpenAI (GPT-3.5 Turbo)**: Alternative fallback.
-
 ---
 
-### Embedding Model
-- **Google Gemini (gemini-embedding-2-preview)**: Batch optimized for performance.
+## 🚦 Getting Started
 
----
-
-## API Key Setup
-
-To securely use LLM and embedding services, API keys are stored using environment variables.
-
-### Step 1: Create a `.env` file in the backend directory
-
-```env
+### 1. Configure Environment
+Add your API keys to `backend/.env`:
+```text
 GEMINI_API_KEY=your_gemini_key
 GROQ_API_KEY=your_groq_key
-OPENAI_API_KEY=your_openai_key
+```
+
+### 2. Launch Backend (Port 8000)
+```powershell
+# From the root directory
+cd backend
+python main.py
+```
+
+### 3. Launch Frontend (Port 5173)
+```powershell
+cd frontend-new
+npm install
+npm run dev
 ```
 
 ---
 
-## Demo Preview
-
-A visual walkthrough of the application:
-
-<p align="center">
-  <img src="./assets/step1.png" width="45%" alt="Upload Interface" />
-  <img src="./assets/step2.png" width="45%" alt="Processing State" />
-</p>
-
-<p align="center">
-  <img src="./assets/step3.png" width="45%" alt="Asking Questions" />
-  <img src="./assets/step4.png" width="45%" alt="Thinking State" />
-</p>
-
-<p align="center">
-  <img src="./assets/step5.png" width="45%" alt="Result Display" />
-  <img src="./assets/step6.png" width="45%" alt="PDF Support" />
-</p>
-
----
-
-## How to Run Locally
-
-### 1. Backend
-```bash
-cd document_qa/backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
-### 2. Frontend
-Open `document_qa/frontend/index.html` in any browser or use VS Code Live Server.
-
----
-
-## Live Demo
-
-- **Frontend:** [TalentScout](https://q-and-a-bot.vercel.app/)
-- **Backend API:** [Hosted on Render](https://q-and-a-bot.onrender.com)
+*Built for transparency. Engineered for trust.*

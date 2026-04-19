@@ -9,6 +9,8 @@ from openai import OpenAI
 import numpy as np
 import google.generativeai as genai
 from pypdf import PdfReader
+import chromadb
+from evaluator import evaluate_response
 
 load_dotenv()
 
@@ -32,8 +34,12 @@ groq_client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-# -------- STORE (In-Memory) --------
-DOCUMENTS = {}
+# -------- CHROMADB --------
+client = chromadb.PersistentClient(path="./chroma_db")
+collection = client.get_or_create_collection(
+    name="document_qa_collection",
+    metadata={"hnsw:space": "cosine"}
+)
 
 # -------- MODEL --------
 class AskRequest(BaseModel):
@@ -42,7 +48,7 @@ class AskRequest(BaseModel):
 
 
 # -------- CHUNK --------
-def chunk_text(text, size=500, overlap=50):
+def chunk_text(text, size=800, overlap=100):
     chunks = []
     i = 0
     while i < len(text):
@@ -55,7 +61,7 @@ def chunk_text(text, size=500, overlap=50):
 def embed(texts):
     try:
         res = genai.embed_content(
-            model="models/gemini-embedding-2-preview",
+            model="models/text-embedding-004",
             content=texts
         )
         return res["embedding"]
@@ -66,7 +72,6 @@ def embed(texts):
 # -------- UPLOAD --------
 @app.post("/upload")
 async def upload(file: UploadFile):
-
     if file.filename.endswith(".txt"):
         content = await file.read()
         text = content.decode("utf-8")
@@ -86,11 +91,16 @@ async def upload(file: UploadFile):
     embeddings = embed(chunks)
 
     doc_id = str(uuid.uuid4())
-
-    DOCUMENTS[doc_id] = {
-        "chunks": chunks,
-        "embeddings": embeddings
-    }
+    
+    ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
+    metadatas = [{"doc_id": doc_id, "chunk_index": i} for i in range(len(chunks))]
+    
+    collection.add(
+        ids=ids,
+        embeddings=embeddings,
+        documents=chunks,
+        metadatas=metadatas
+    )
 
     return {
         "document_id": doc_id,
@@ -99,58 +109,57 @@ async def upload(file: UploadFile):
     }
 
 
-# -------- RETRIEVE --------
-def retrieve(doc_id, question):
-    data = DOCUMENTS.get(doc_id)
-
-    if not data:
-        return None
-
-    q_embed = embed([question])[0]
-
-    sims = np.dot(data["embeddings"], q_embed)
-    idx = np.argsort(sims)[-3:][::-1]
-
-    return [data["chunks"][i] for i in idx], idx.tolist()
-
-
 # -------- ASK --------
 @app.post("/ask")
 def ask(req: AskRequest):
-
     if not req.question:
         raise HTTPException(status_code=400, detail="Question is empty")
 
-    result = retrieve(req.document_id, req.question)
+    # 1. Embed user question
+    q_embed = embed([req.question])[0]
+    
+    # 2. Retrieve top chunks from ChromaDB
+    results = collection.query(
+        query_embeddings=[q_embed],
+        n_results=3,
+        where={"doc_id": req.document_id}
+    )
+    
+    if not results["documents"]:
+        raise HTTPException(status_code=404, detail="Document not found or no context retrieved")
+        
+    context = "\n\n".join(results["documents"][0])
+    sources = results["ids"][0]
 
-    if not result:
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    context, sources = result
-
+    # 3. Generate Answer
     prompt = f"""
-Answer ONLY using this context:
-{context}
-
-If answer is not present, say:
-"Answer not found in document"
-
-Question:
-{req.question}
-"""
+    Answer the following question using ONLY the provided context. 
+    If the answer is not in the context, state that explicitly.
+    
+    [CONTEXT]
+    {context}
+    
+    [QUESTION]
+    {req.question}
+    """
 
     try:
         res = groq_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}]
         )
+        answer = res.choices[0].message.content
+        
+        # 4. EVALUATE (Judge LLM)
+        evaluation = evaluate_response(req.question, context, answer)
+        
+        return {
+            "answer": answer,
+            "sources": sources,
+            "evaluation": evaluation
+        }
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"LLM failed: {str(e)}")
-
-    return {
-        "answer": res.choices[0].message.content,
-        "sources": sources
-    }
+        raise HTTPException(status_code=503, detail=f"AI Engine failed: {str(e)}")
 
 
 # -------- HEALTH --------
