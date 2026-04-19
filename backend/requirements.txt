@@ -5,3 +5,4 @@ openai
 python-multipart
 numpy
 google-generativeai
+pypdf

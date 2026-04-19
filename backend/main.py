@@ -3,10 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid
 import os
+import io
 from dotenv import load_dotenv
 from openai import OpenAI
 import numpy as np
 import google.generativeai as genai
+from pypdf import PdfReader
 
 load_dotenv()
 
@@ -30,7 +32,7 @@ groq_client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-# -------- STORE --------
+# -------- STORE (In-Memory) --------
 DOCUMENTS = {}
 
 # -------- MODEL --------
@@ -40,7 +42,7 @@ class AskRequest(BaseModel):
 
 
 # -------- CHUNK --------
-def chunk_text(text, size=300, overlap=50):
+def chunk_text(text, size=500, overlap=50):
     chunks = []
     i = 0
     while i < len(text):
@@ -49,20 +51,14 @@ def chunk_text(text, size=300, overlap=50):
     return chunks
 
 
-# -------- GEMINI EMBEDDING --------
+# -------- GEMINI EMBEDDING (Batch) --------
 def embed(texts):
     try:
-        embeddings = []
-
-        for text in texts:
-            res = genai.embed_content(
-                model="models/gemini-embedding-2-preview",
-                content=text
-            )
-            embeddings.append(res["embedding"])
-
-        return embeddings
-
+        res = genai.embed_content(
+            model="models/gemini-embedding-2-preview",
+            content=texts
+        )
+        return res["embedding"]
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Embedding failed: {str(e)}")
 
@@ -71,15 +67,20 @@ def embed(texts):
 @app.post("/upload")
 async def upload(file: UploadFile):
 
-    if not file.filename.endswith(".txt"):
-        raise HTTPException(status_code=415, detail="Only .txt files allowed")
+    if file.filename.endswith(".txt"):
+        content = await file.read()
+        text = content.decode("utf-8")
+    elif file.filename.endswith(".pdf"):
+        content = await file.read()
+        pdf_reader = PdfReader(io.BytesIO(content))
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text() + "\n"
+    else:
+        raise HTTPException(status_code=415, detail="Only .txt and .pdf files allowed")
 
-    content = await file.read()
-
-    if not content:
-        raise HTTPException(status_code=400, detail="File is empty")
-
-    text = content.decode("utf-8")
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="File is empty or no text found")
 
     chunks = chunk_text(text)
     embeddings = embed(chunks)
