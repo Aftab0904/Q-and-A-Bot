@@ -1,4 +1,4 @@
-# 🛡️ DocAuditor AI | Advanced Document QA with Real-Time Evaluation
+# DocAuditor AI | Advanced Document QA with Real-Time Evaluation
 
 > **Status:** Top 10% Innovation Tier | Real-Time LLM-as-a-Judge Evaluation
 
@@ -6,7 +6,42 @@ DocAuditor AI is a professional-grade document intelligence platform that goes b
 
 ---
 
-## 🚀 Why This Project is Advanced
+## Tech Stack
+
+![React](https://img.shields.io/badge/React-20232a?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-000000?style=for-the-badge&logo=chroma&logoColor=white)
+![Groq](https://img.shields.io/badge/Groq-f55036?style=for-the-badge)
+![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+
+---
+
+## Demo
+
+| Watch the Video | Explore the App |
+| :---: | :---: |
+| [![Watch the Video](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/USRkALlGbaE) | [**Live Demo Link**](https://youtu.be/USRkALlGbaE) |
+
+### Screenshots
+
+<p align="center">
+  <img src="assets/Screenshot (210).png" width="45%" />
+  <img src="assets/Screenshot (211).png" width="45%" />
+</p>
+<p align="center">
+  <img src="assets/Screenshot (212).png" width="45%" />
+  <img src="assets/Screenshot (213).png" width="45%" />
+</p>
+<p align="center">
+  <img src="assets/Screenshot (214).png" width="90%" />
+</p>
+
+---
+
+## Why This Project is Advanced
 
 Most RAG systems operate as "black boxes"—users have to blindly trust the AI's output. DocAuditor AI solves this by introducing a **Judge LLM** (powered by Llama 3.3) that meticulously evaluates every answer.
 
@@ -19,18 +54,7 @@ Most RAG systems operate as "black boxes"—users have to blindly trust the AI's
 
 ---
 
-## 🛠️ The Tech Stack
-
-- **Frontend:** React 19 (Vite) + Tailwind CSS + Framer Motion + Lucide Icons.
-- **Backend:** FastAPI (Python).
-- **Vector Database:** ChromaDB.
-- **Generator LLM:** Groq Llama 3.3 70B.
-- **Evaluator (Judge) LLM:** Groq Llama 3.3 70B (configured as an expert auditor).
-- **Embeddings:** Google Gemini (`text-embedding-004`).
-
----
-
-## 📐 Architecture
+## Architecture
 
 ```mermaid
 graph TD
@@ -68,7 +92,7 @@ graph TD
 
 ---
 
-## 🚦 Getting Started
+## Getting Started
 
 ### 1. Configure Environment
 Add your API keys to `backend/.env`:
