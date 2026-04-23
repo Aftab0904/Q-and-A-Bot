@@ -13,6 +13,7 @@ DocAuditor AI is a professional-grade document intelligence platform that goes b
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-000000?style=for-the-badge&logo=chroma&logoColor=white)
 ![Groq](https://img.shields.io/badge/Groq-f55036?style=for-the-badge)
 ![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
@@ -81,6 +82,17 @@ graph TD
 - **Ingestion:** Documents are processed via a layout-aware extraction engine that preserves structural integrity.
 - **Retrieval:** Utilizes cosine similarity across high-dimensional vector space for pinpoint accuracy.
 - **Evaluation:** The "Trust Engine" executes a multi-shot prompt strategy to audit the generator's output before it reaches the UI.
+
+---
+
+## LangChain Orchestration
+
+The project leverages LangChain to unify the RAG pipeline, providing a modular and scalable architecture.
+
+- **Standardized Text Splitting:** Uses `RecursiveCharacterTextSplitter` for intelligent document partitioning, ensuring semantic coherence within context chunks.
+- **Unified Embedding Interface:** Implements `HuggingFaceEmbeddings` to integrate the local `BAAI/bge-small-en-v1.5` model, enabling high-performance local vector generation.
+- **Vector Store Management:** Utilizes the LangChain `Chroma` wrapper for streamlined persistence and filtered similarity search.
+- **LLM Abstraction:** Employs the `ChatOpenAI` interface to manage communication with Groq-hosted Llama models, simplifying prompt management and response parsing.
 
 ---
 
