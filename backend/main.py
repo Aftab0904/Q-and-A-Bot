@@ -5,12 +5,11 @@ import uuid
 import os
 import io
 from dotenv import load_dotenv
-from openai import OpenAI
-import numpy as np
+from langchain_openai import ChatOpenAI
 from pypdf import PdfReader
-import chromadb
 from evaluator import evaluate_response
-from sentence_transformers import SentenceTransformer
+import rag_service
+from models import AskRequest
 
 load_dotenv()
 
@@ -26,54 +25,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -------- LLM CLIENT --------
-groq_client = OpenAI(
+# -------- LLM CLIENT (LangChain) --------
+# We use ChatOpenAI which is compatible with Groq if we set base_url
+llm = ChatOpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1"
+    base_url="https://api.groq.com/openai/v1",
+    model="llama-3.3-70b-versatile"
 )
-
-# -------- EMBEDDING MODEL (LOCAL) --------
-print("Loading local embedding model (BAAI/bge-small-en-v1.5)...")
-embed_model = SentenceTransformer('BAAI/bge-small-en-v1.5')
-
-# -------- CHROMADB --------
-client = chromadb.PersistentClient(path="./chroma_db")
-collection = client.get_or_create_collection(
-    name="document_qa_collection",
-    metadata={"hnsw:space": "cosine"}
-)
-
-# -------- MODEL --------
-class AskRequest(BaseModel):
-    document_id: str
-    question: str
-
-
-# -------- CHUNK --------
-def chunk_text(text, size=800, overlap=100):
-    chunks = []
-    i = 0
-    while i < len(text):
-        chunks.append(text[i:i+size])
-        i += size - overlap
-    return chunks
-
-
-# -------- LOCAL EMBEDDING --------
-def embed(texts):
-    try:
-        # Use local sentence-transformers
-        if isinstance(texts, str):
-            texts = [texts]
-        
-        embeddings = embed_model.encode(texts)
-        return embeddings.tolist()
-    except Exception as e:
-        print(f"CRITICAL: Embedding failed: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=503, detail=f"Local embedding failed: {str(e)}")
-
 
 # -------- UPLOAD --------
 @app.post("/upload")
@@ -93,20 +51,10 @@ async def upload(file: UploadFile):
     if not text.strip():
         raise HTTPException(status_code=400, detail="File is empty or no text found")
 
-    chunks = chunk_text(text)
-    embeddings = embed(chunks)
-
+    # Use LangChain-powered RAG service
+    chunks = rag_service.chunk_text(text)
     doc_id = str(uuid.uuid4())
-    
-    ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
-    metadatas = [{"doc_id": doc_id, "chunk_index": i} for i in range(len(chunks))]
-    
-    collection.add(
-        ids=ids,
-        embeddings=embeddings,
-        documents=chunks,
-        metadatas=metadatas
-    )
+    rag_service.store_document(doc_id, file.filename, chunks)
 
     return {
         "document_id": doc_id,
@@ -121,23 +69,16 @@ def ask(req: AskRequest):
     if not req.question:
         raise HTTPException(status_code=400, detail="Question is empty")
 
-    # 1. Embed user question
-    q_embed = embed([req.question])[0]
+    # 1. Retrieve top chunks using LangChain logic in rag_service
+    docs, metadatas = rag_service.retrieve(req.document_id, req.question)
     
-    # 2. Retrieve top chunks from ChromaDB
-    results = collection.query(
-        query_embeddings=[q_embed],
-        n_results=3,
-        where={"doc_id": req.document_id}
-    )
-    
-    if not results["documents"]:
+    if not docs:
         raise HTTPException(status_code=404, detail="Document not found or no context retrieved")
         
-    context = "\n\n".join(results["documents"][0])
-    sources = results["ids"][0]
+    context = "\n\n".join(docs)
+    sources = [m.get("chunk_index") for m in metadatas]
 
-    # 3. Generate Answer
+    # 2. Generate Answer using LangChain ChatOpenAI
     prompt = f"""
     Answer the following question using ONLY the provided context. 
     If the answer is not in the context, state that explicitly.
@@ -150,13 +91,11 @@ def ask(req: AskRequest):
     """
 
     try:
-        res = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        answer = res.choices[0].message.content
+        # Using LangChain invoke method
+        res = llm.invoke(prompt)
+        answer = res.content
         
-        # 4. EVALUATE (Judge LLM)
+        # 3. EVALUATE (Judge LLM)
         evaluation = evaluate_response(req.question, context, answer)
         
         return {
@@ -176,7 +115,7 @@ def health():
 
 @app.get("/")
 def root():
-    return {"message": "API running 🚀"}
+    return {"message": "API running with LangChain"}
 
 if __name__ == "__main__":
     import uvicorn

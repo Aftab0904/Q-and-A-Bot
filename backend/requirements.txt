@@ -8,3 +8,8 @@ pypdf
 chromadb
 sentence-transformers
 torch
+langchain
+langchain-openai
+langchain-community
+langchain-huggingface
+langchain-chroma

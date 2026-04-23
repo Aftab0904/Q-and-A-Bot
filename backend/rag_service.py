@@ -1,67 +1,59 @@
 import os
-import uuid
-import numpy as np
-import chromadb
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 load_dotenv()
 
 # -------- CONFIG --------
-# Local Embedding Model (No API needed)
-print("Loading local embedding model (BAAI/bge-small-en-v1.5)...")
-embed_model = SentenceTransformer('BAAI/bge-small-en-v1.5')
+# Local Embedding Model using LangChain's HuggingFaceEmbeddings wrapper
+print("Loading local embedding model (BAAI/bge-small-en-v1.5) via LangChain...")
+embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
-# Persistent ChromaDB
-client = chromadb.PersistentClient(path="./chroma_db")
-
-# Create or get a collection for documents
-collection = client.get_or_create_collection(
-    name="document_qa_collection",
-    metadata={"hnsw:space": "cosine"}
+# Persistent ChromaDB via LangChain wrapper
+persist_directory = "./chroma_db"
+vectorstore = Chroma(
+    collection_name="document_qa_collection",
+    embedding_function=embeddings,
+    persist_directory=persist_directory
 )
 
 # -------- CHUNK --------
 def chunk_text(text, size=500, overlap=50):
-    chunks = []
-    i = 0
-    while i < len(text):
-        chunks.append(text[i:i+size])
-        i += size - overlap
-    return chunks
-
-# -------- LOCAL EMBEDDING --------
-def embed(texts):
-    if isinstance(texts, str):
-        texts = [texts]
-    embeddings = embed_model.encode(texts)
-    return embeddings.tolist()
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=size,
+        chunk_overlap=overlap,
+        length_function=len,
+    )
+    return text_splitter.split_text(text)
 
 # -------- STORE --------
 def store_document(doc_id, filename, chunks):
-    embeddings = embed(chunks)
-    
-    ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
+    # Add metadata to chunks
     metadatas = [{"filename": filename, "doc_id": doc_id, "chunk_index": i} for i in range(len(chunks))]
+    # LangChain's Chroma handles ID generation or we can provide them
+    ids = [f"{doc_id}_{i}" for i in range(len(chunks))]
     
-    collection.add(
-        ids=ids,
-        embeddings=embeddings,
-        documents=chunks,
-        metadatas=metadatas
+    vectorstore.add_texts(
+        texts=chunks,
+        metadatas=metadatas,
+        ids=ids
     )
 
 # -------- RETRIEVE --------
 def retrieve(doc_id, question, top_k=3):
-    q_embed = embed([question])[0]
-    
-    results = collection.query(
-        query_embeddings=[q_embed],
-        n_results=top_k,
-        where={"doc_id": doc_id}
+    # LangChain's retriever with filter for doc_id
+    results = vectorstore.similarity_search(
+        question, 
+        k=top_k, 
+        filter={"doc_id": doc_id}
     )
     
-    if not results["documents"]:
+    if not results:
         return None, []
         
-    return results["documents"][0], results["metadatas"][0]
+    documents = [doc.page_content for doc in results]
+    metadatas = [doc.metadata for doc in results]
+    
+    return documents, metadatas
